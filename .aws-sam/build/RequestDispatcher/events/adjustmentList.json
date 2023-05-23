@@ -1,0 +1,21 @@
+{
+    "version": "0",
+    "id": "6b71a39e-1ac1-8008-67fe-777fd869b639",
+    "detail-type": "documentCreated",
+    "source": "public.thetis-ims.com",
+    "account": "170069103691",
+    "time": "2021-10-09T18:00:22Z",
+    "region": "eu-west-1",
+    "resources": [],
+    "detail": {
+        "eventId": "8880222d-2b08-48df-9cf9-b5c93a4e4948",
+        "stockTakingId": 32936054,
+        "documentType": "ADJUSTMENT_LIST",
+        "subscriberId": "379",
+        "contextId": "550",
+        "documentId": 73570175,
+        "eventType": "documentCreated",
+        "userId": 32935249,
+        "deviceName": "-"
+    }
+}

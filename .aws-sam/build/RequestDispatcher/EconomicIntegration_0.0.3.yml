@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Application for integrating Thetis IMS with e-conomic
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: thetis-ims-economic-integration
+    Description: Application for integration of Thetis IMS with economic
+    Author: thetis-apps
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/6897102163965750d58f01f4be0b3d89
+    Labels:
+    - thetis-ims
+    HomePageUrl: https://github.com/thetis-apps/EconomicIntegration
+    SemanticVersion: '0.0.3'
+    SourceCodeUrl: https://github.com/thetis-apps/EconomicIntegration
+Globals:
+  Function:
+    Runtime: nodejs16.x
+    MemorySize: 512
+    Timeout: 60
+Parameters:
+  ContextId:
+    Type: String
+    Description: Context that this application is handling events for.
+    MinLength: 1
+  ClientId:
+    Description: Key of the parameter that has your Thetis client id as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientId
+  ClientSecret:
+    Description: Key of the parameter that has your Thetis client secret as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientSecret
+  ApiKey:
+    Description: The api key that gives access to the context in Thetis IMS.
+    Type: String
+    MinLength: 1
+  DevOpsEmail:
+    Description: The email address to send mail to when messages in the dead letter
+      queue.
+    Type: String
+    MinLength: 4
+Resources:
+  SyncProductsRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      KmsMasterKeyId: alias/aws/sqs
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 300
+    Metadata:
+      SamResourceId: SyncProductsRequestQueue
+  ProductQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      KmsMasterKeyId: alias/aws/sqs
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 300
+    Metadata:
+      SamResourceId: ProductQueue
+  RequestDispatcher:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function for queueing products from e-conomic
+      Handler: src/app.dispatch
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          ContextId:
+            Ref: ContextId
+          SyncProductsRequestQueue:
+            Ref: SyncProductsRequestQueue
+      Policies:
+      - AmazonSQSFullAccess
+      Events:
+        ProductSyncRequest:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /syncProducts
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/3fa7762d249492db3eb7fff892d47903
+    Metadata:
+      SamResourceId: RequestDispatcher
+  PullProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function for pulling products from e-conomic
+      Handler: src/app.pullProducts
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          ContextId:
+            Ref: ContextId
+          ProductQueue:
+            Ref: ProductQueue
+      Timeout: 300
+      Policies:
+      - AmazonSQSFullAccess
+      Events:
+        Request:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - SyncProductsRequestQueue
+              - Arn
+            BatchSize: 1
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/3fa7762d249492db3eb7fff892d47903
+    Metadata:
+      SamResourceId: PullProductsFunction
+  PushProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function to push pages of products onto Thetis IMS
+      Handler: src/app.pushProducts
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          ContextId:
+            Ref: ContextId
+      Timeout: 300
+      Events:
+        ProductsToPull:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - ProductQueue
+              - Arn
+            BatchSize: 1
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/3fa7762d249492db3eb7fff892d47903
+    Metadata:
+      SamResourceId: PushProductsFunction
+  PullOrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function for pulling orders from e-conomic to Thetis IMS
+      Handler: src/app.pullOrders
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          ContextId:
+            Ref: ContextId
+      Timeout: 900
+      Events:
+        TimeToPullOrders:
+          Type: Schedule
+          Properties:
+            Schedule: cron(*/30 * * * ? *)
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/3fa7762d249492db3eb7fff892d47903
+    Metadata:
+      SamResourceId: PullOrdersFunction
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
+      FifoQueue: true
+      VisibilityTimeout: 60
+    Metadata:
+      SamResourceId: DeadLetterQueue
+  Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm when any message is moved to the dead letter queue.
+      AlarmActions:
+      - Ref: IncidentTopic
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Period: 60
+      Namespace: AWS/SQS
+      Threshold: '0'
+      Unit: Count
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - QueueName
+      TreatMissingData: notBreaching
+      Statistic: Maximum
+    Metadata:
+      SamResourceId: Alarm
+  IncidentTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint:
+          Ref: DevOpsEmail
+        Protocol: email
+      DisplayName: Incidents to be handled by Thetis Devops.
+    Metadata:
+      SamResourceId: IncidentTopic
+Outputs:
+  Api:
+    Description: API Gatesam way endpoint URL for functions
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/

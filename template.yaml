@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Application for integrating Thetis IMS with e-conomic
+
+# Metadata to use for the publishing to the SAR
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: thetis-ims-economic-integration
+    Description: Application for integration of Thetis IMS with economic
+    Author: thetis-apps
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE.txt
+    ReadmeUrl: README.md
+    Labels: ['thetis-ims']
+    HomePageUrl: https://github.com/thetis-apps/EconomicIntegration
+    SemanticVersion: 0.1.5
+    SourceCodeUrl: https://github.com/thetis-apps/EconomicIntegration
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs16.x
+    MemorySize: 512
+    Timeout: 60
+
+# Parameters of the application 
+Parameters:
+  ContextId:
+    Type: String
+    Description: Context that this application is handling events for.
+    MinLength: 1
+  ClientId:
+    Description: Key of the parameter that has your Thetis client id as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientId
+  ClientSecret:
+    Description: Key of the parameter that has your Thetis client secret as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientSecret
+  WebAcl:
+    Description: Key of the parameter that has a WAF to use for publicly exposed endpoints as its value
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisWebAcl
+  ApiKey:
+    Description: The api key that gives access to the context in Thetis IMS.
+    Type: String
+    MinLength: 1
+  DevOpsEmail:
+    Description: The email address to send mail to when messages in the dead letter queue.
+    Type: String
+    MinLength: 4
+    
+Resources:
+
+  DocumentHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function that runs when a relevant document is created within Thetis IMS
+      Handler: src/app.documentHandler
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          EconomicAccessToken:
+            Ref: EconomicAccessToken
+          ContextId:
+            Ref: ContextId
+      Events:
+        Request:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+              - public.thetis-ims.com
+              detail-type:
+              - documentCreated
+              detail:
+                documentType:
+                - GOODS_RECEIPT
+                - COST_OF_SALES_LIST
+                - ADJUSTMENT_LIST
+                - COST_VARIANCE_LIST
+                - RETURN_RECEIPT
+                - DELIVERY_NOTE
+                - CONSIGNMENT_NOTE
+                contextId:
+                - Ref: ContextId
+      Timeout: 100
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+
+  # Our standard monitoring setup      
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties: 
+      KmsMasterKeyId: alias/aws/sqs
+      FifoQueue: true
+      VisibilityTimeout: 60
+  Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm when any message is moved to the dead letter queue.
+      AlarmActions:
+      - Ref: IncidentTopic
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Period: 60
+      Namespace: AWS/SQS
+      Threshold: '0'
+      Unit: Count
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - QueueName
+      TreatMissingData: notBreaching
+      Statistic: Maximum
+  IncidentTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+      - Endpoint: 
+          Ref: DevOpsEmail        
+        Protocol: email
+      DisplayName: Incidents to be handled by Thetis Devops.
+      
+Outputs:
+  Api:
+    Description: "API Gateway endpoint URL for functions"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+
