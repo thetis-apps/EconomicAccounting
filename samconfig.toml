@@ -2,9 +2,9 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "TestEconomicIntegration"
+stack_name = "TestEconomicAccounting"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3"
-s3_prefix = "TestEconomicIntegration"
+s3_prefix = "TestEconomicAccounting"
 region = "eu-west-1"
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ContextId=\"550\" ClientId=\"ThetisClientId\" ClientSecret=\"ThetisClientSecret\" ApiKey=\"b495480a-181c-4608-ab12-d72977776395\" DevOpsEmail=\"lmp@thetis-apps.com\""

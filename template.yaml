@@ -5,16 +5,16 @@ Description: Application for integrating Thetis IMS with e-conomic
 # Metadata to use for the publishing to the SAR
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: thetis-ims-economic-integration
-    Description: Application for integration of Thetis IMS with economic
+    Name: thetis-ims-economic-accounting
+    Description: Application for accounting from Thetis IMS in e-conomic
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE.txt
     ReadmeUrl: README.md
     Labels: ['thetis-ims']
-    HomePageUrl: https://github.com/thetis-apps/EconomicIntegration
-    SemanticVersion: 0.1.5
-    SourceCodeUrl: https://github.com/thetis-apps/EconomicIntegration
+    HomePageUrl: https://github.com/thetis-apps/EconomicApplication
+    SemanticVersion: 1.0.0
+    SourceCodeUrl: https://github.com/thetis-apps/EconomicApplication
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -65,8 +65,6 @@ Resources:
             Ref: ClientSecret
           ApiKey:
             Ref: ApiKey
-          EconomicAccessToken:
-            Ref: EconomicAccessToken
           ContextId:
             Ref: ContextId
       Events:
@@ -84,9 +82,7 @@ Resources:
                 - COST_OF_SALES_LIST
                 - ADJUSTMENT_LIST
                 - COST_VARIANCE_LIST
-                - RETURN_RECEIPT
-                - DELIVERY_NOTE
-                - CONSIGNMENT_NOTE
+                - VALUE_ADJUSTMENT_RECEIPT
                 contextId:
                 - Ref: ContextId
       Timeout: 100
@@ -102,8 +98,6 @@ Resources:
     Type: AWS::SQS::Queue
     Properties: 
       KmsMasterKeyId: alias/aws/sqs
-      FifoQueue: true
-      VisibilityTimeout: 60
   Alarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -135,9 +129,4 @@ Resources:
         Protocol: email
       DisplayName: Incidents to be handled by Thetis Devops.
       
-Outputs:
-  Api:
-    Description: "API Gateway endpoint URL for functions"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-
 
