@@ -12,9 +12,9 @@ Metadata:
     LicenseUrl: LICENSE.txt
     ReadmeUrl: README.md
     Labels: ['thetis-ims']
-    HomePageUrl: https://github.com/thetis-apps/EconomicApplication
+    HomePageUrl: https://github.com/thetis-apps/EconomicAccounting
     SemanticVersion: 1.0.0
-    SourceCodeUrl: https://github.com/thetis-apps/EconomicApplication
+    SourceCodeUrl: https://github.com/thetis-apps/EconomicAccounting
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:

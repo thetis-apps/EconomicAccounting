@@ -7,8 +7,8 @@ Metadata:
     Description: Application for accounting from Thetis IMS in e-conomic
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
-    LicenseUrl: ../../LICENSE.txt
-    ReadmeUrl: ../../README.md
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/6897102163965750d58f01f4be0b3d89
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/EconomicAccounting
@@ -88,13 +88,15 @@ Resources:
           Fn::GetAtt:
           - DeadLetterQueue
           - Arn
-      CodeUri: DocumentHandler
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/817f8120aa76305c60aa959580c6de55
     Metadata:
       SamResourceId: DocumentHandler
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
       KmsMasterKeyId: alias/aws/sqs
+    Metadata:
+      SamResourceId: DeadLetterQueue
   Alarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -116,6 +118,8 @@ Resources:
           - QueueName
       TreatMissingData: notBreaching
       Statistic: Maximum
+    Metadata:
+      SamResourceId: Alarm
   IncidentTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -125,3 +129,5 @@ Resources:
           Ref: DevOpsEmail
         Protocol: email
       DisplayName: Incidents to be handled by Thetis Devops.
+    Metadata:
+      SamResourceId: IncidentTopic

@@ -142,6 +142,9 @@ exports.documentHandler = async (event, awsContext) => {
     if (detail.documentType == 'GOODS_RECEIPT') {
         text = detail.inboundShipmentNumber + ' ' + document.localizedDocumentType + ' ' + document.documentNumber;
 		contraAccountNumber = setup.intermediateAccount;
+    } else if (detail.documentType == 'RETURN_RECEIPT') {
+        text = detail.returnShipmentNumber + ' ' + document.localizedDocumentType + ' ' + document.documentNumber;
+		contraAccountNumber = setup.intermediateAccount;
     } else if (detail.documentType == 'ADJUSTMENT_LIST') {
         text = document.localizedDocumentType + ' ' + document.documentNumber;
         contraAccountNumber = setup.adjustmentAccount;
@@ -176,7 +179,7 @@ exports.documentHandler = async (event, awsContext) => {
                 'currency': {
                     'code': context.baseCurrencyCode,
                 },
-                'date': document.postingDate,
+                'date': document.postingDate
             }]
         }
     };
@@ -185,7 +188,7 @@ exports.documentHandler = async (event, awsContext) => {
     response = await economic.post('/journals/' + journal.journalNumber + '/vouchers', voucher);
     voucher = response.data[0].entries.financeVouchers[0].voucher;
 
-    await postMessage(ims, detail, "Document was posted to e-conomic as voucher: " + voucher.voucherNumber);
+    await postMessage(ims, detail, "Document was posted to e-conomic as voucher: " + setup.accountingYear + '-' + voucher.voucherNumber);
 
 };
 
