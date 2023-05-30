@@ -1,29 +1,24 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Application for integrating Thetis IMS with e-conomic
-
-# Metadata to use for the publishing to the SAR
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: thetis-ims-economic-accounting
     Description: Application for accounting from Thetis IMS in e-conomic
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
-    LicenseUrl: LICENSE.txt
-    ReadmeUrl: README.md
-    Labels: ['thetis-ims']
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/6897102163965750d58f01f4be0b3d89
+    Labels:
+    - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/EconomicAccounting
     SemanticVersion: 1.0.1
     SourceCodeUrl: https://github.com/thetis-apps/EconomicAccounting
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Runtime: nodejs16.x
     MemorySize: 512
     Timeout: 60
-
-# Parameters of the application 
 Parameters:
   ContextId:
     Type: String
@@ -38,7 +33,8 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: ThetisClientSecret
   WebAcl:
-    Description: Key of the parameter that has a WAF to use for publicly exposed endpoints as its value
+    Description: Key of the parameter that has a WAF to use for publicly exposed endpoints
+      as its value
     Type: AWS::SSM::Parameter::Value<String>
     Default: ThetisWebAcl
   ApiKey:
@@ -46,16 +42,16 @@ Parameters:
     Type: String
     MinLength: 1
   DevOpsEmail:
-    Description: The email address to send mail to when messages in the dead letter queue.
+    Description: The email address to send mail to when messages in the dead letter
+      queue.
     Type: String
     MinLength: 4
-    
 Resources:
-
   DocumentHandler:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Function that runs when a relevant document is created within Thetis IMS
+      Description: Function that runs when a relevant document is created within Thetis
+        IMS
       Handler: src/app.documentHandler
       Environment:
         Variables:
@@ -92,11 +88,12 @@ Resources:
           Fn::GetAtt:
           - DeadLetterQueue
           - Arn
-
-  # Our standard monitoring setup      
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/8be6d1ad09e9a0ddfca7e5f0ab8e1518
+    Metadata:
+      SamResourceId: DocumentHandler
   DeadLetterQueue:
     Type: AWS::SQS::Queue
-    Properties: 
+    Properties:
       KmsMasterKeyId: alias/aws/sqs
-
-
+    Metadata:
+      SamResourceId: DeadLetterQueue
