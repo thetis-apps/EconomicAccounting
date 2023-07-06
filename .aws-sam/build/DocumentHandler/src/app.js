@@ -79,6 +79,113 @@ async function getIMS() {
 	return ims;
 }
 
+var dataSchema = {
+          "type": "object",
+          "title": "e-conomic regnskab",
+          "properties": {
+            "EconomicAccounting": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "title": "Access token",
+                  "type": "string"
+                },
+                "journalName": {
+                  "title": "Journalnavn",
+                  "type": "string"
+                },
+                "accountingYear": {
+                  "title": "Regnskabsår",
+                  "type": "string"
+                },
+                "inventoryAccount": {
+                  "title": "Lagerkonto",
+                  "type": "integer"
+                },
+                "adjustmentAccount": {
+                  "title": "Tab og vind konto",
+                  "type": "integer"
+                },
+                "costOfSalesAccount": {
+                  "title": "Vareforbrugskonto",
+                  "type": "integer"
+                },
+                "deprecationAccount": {
+                  "title": "Nedskrivningskonto",
+                  "type": "integer"
+                },
+                "intermediateAccount": {
+                  "title": "Mellemkonto", 
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        };
+				
+/**
+ * Send a response to CloudFormation regarding progress in creating resource.
+ */
+async function sendResponse(input, context, responseStatus, reason) {
+
+	let responseUrl = input.ResponseURL;
+
+	let output = new Object();
+	output.Status = responseStatus;
+	output.PhysicalResourceId = "StaticFiles";
+	output.StackId = input.StackId;
+	output.RequestId = input.RequestId;
+	output.LogicalResourceId = input.LogicalResourceId;
+	output.Reason = reason;
+	await axios.put(responseUrl, output);
+}
+
+exports.initializer = async (input, context) => {
+	
+	try {
+		let ims = await getIMS();
+		let requestType = input.RequestType;
+		if (requestType == "Create") {
+			
+			// Create a data extension to the context entity
+
+			let dataExtension = { entityName: 'context', dataExtensionName: 'EconomicAccounting', dataSchema: JSON.stringify(dataSchema) };
+			await ims.post('dataExtensions', dataExtension);
+			
+		} else if (requestType == 'Update') {
+			
+			// Update the data extension to the context entity
+			
+			let response = await ims.get('dataExtensions');
+			let dataExtensions = response.data;
+			let found = false;
+			let i = 0;
+			while (i < dataExtensions.length && !found) {
+				let dataExtension = dataExtensions[i];
+				if (dataExtension.entityName == 'context' && dataExtension.dataExtensionName == 'EconomicAccounting') {
+					found = true;
+				} else {
+					i++;
+				}
+			}
+			if (found) {
+				let dataExtension = dataExtensions[i];
+				await ims.patch('dataExtensions/' + dataExtension.id, { dataSchema: JSON.stringify(dataSchema) });
+			} else {
+				let dataExtension = { entityName: 'context', dataExtensionName: 'EconomicAccounting', dataSchema: JSON.stringify(dataSchema) };
+				await ims.post('dataExtensions', dataExtension);
+			}
+			
+		}
+		
+		await sendResponse(input, context, "SUCCESS", "OK");
+
+	} catch (error) {
+		await sendResponse(input, context, "SUCCESS", JSON.stringify(error));
+	}
+
+};
+
 async function postMessage(ims, detail, text) {
     let message = new Object();
 	message.time = Date.now();
@@ -184,7 +291,7 @@ exports.documentHandler = async (event, awsContext) => {
         }
     };
 
-    
+   
     response = await economic.post('/journals/' + journal.journalNumber + '/vouchers', voucher);
     voucher = response.data[0].entries.financeVouchers[0].voucher;
 

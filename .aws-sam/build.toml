@@ -8,6 +8,6 @@ architecture = "x86_64"
 handler = "src/app.documentHandler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["DocumentHandler"]
+functions = ["DocumentHandler", "InitializeFunction"]
 
 [layer_build_definitions]

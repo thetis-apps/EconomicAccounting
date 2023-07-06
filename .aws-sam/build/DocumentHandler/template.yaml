@@ -13,7 +13,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['thetis-ims']
     HomePageUrl: https://github.com/thetis-apps/EconomicAccounting
-    SemanticVersion: 1.0.1
+    SemanticVersion: 1.1.3
     SourceCodeUrl: https://github.com/thetis-apps/EconomicAccounting
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -92,6 +92,31 @@ Resources:
           Fn::GetAtt:
           - DeadLetterQueue
           - Arn
+
+  # Initialisation of GLS integration in context        
+  InitResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - InitializeFunction
+        - Arn
+      Version: 3
+  InitializeFunction:
+    Type: AWS::Serverless::Function
+    DeletionPolicy: Delete
+    Properties:
+      Handler: src/app.initializer
+      MemorySize: 2048
+      Timeout: 30
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
 
   # Our standard monitoring setup      
   DeadLetterQueue:

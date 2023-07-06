@@ -7,8 +7,8 @@ Metadata:
     Description: Application for accounting from Thetis IMS in e-conomic
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
-    LicenseUrl: ../../LICENSE.txt
-    ReadmeUrl: ../../README.md
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/6897102163965750d58f01f4be0b3d89
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/EconomicAccounting
@@ -88,7 +88,7 @@ Resources:
           Fn::GetAtt:
           - DeadLetterQueue
           - Arn
-      CodeUri: DocumentHandler
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/87ec1435d674e8a738c7550632f4441a
     Metadata:
       SamResourceId: DocumentHandler
   InitResource:
@@ -99,6 +99,8 @@ Resources:
         - InitializeFunction
         - Arn
       Version: 3
+    Metadata:
+      SamResourceId: InitResource
   InitializeFunction:
     Type: AWS::Serverless::Function
     DeletionPolicy: Delete
@@ -114,10 +116,12 @@ Resources:
             Ref: ClientSecret
           ApiKey:
             Ref: ApiKey
-      CodeUri: InitializeFunction
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/87ec1435d674e8a738c7550632f4441a
     Metadata:
       SamResourceId: InitializeFunction
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
       KmsMasterKeyId: alias/aws/sqs
+    Metadata:
+      SamResourceId: DeadLetterQueue
